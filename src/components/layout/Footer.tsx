@@ -18,7 +18,18 @@ const Footer = () => (
             <Link to="/" className="text-sm text-muted-foreground hover:text-primary">Home</Link>
             <Link to="/shop" className="text-sm text-muted-foreground hover:text-primary">Shop</Link>
             <Link to="/about" className="text-sm text-muted-foreground hover:text-primary">About</Link>
+            <Link to="/contact" className="text-sm text-muted-foreground hover:text-primary">Contact</Link>
             <Link to="/cart" className="text-sm text-muted-foreground hover:text-primary">Cart</Link>
+          </div>
+        </div>
+
+        <div>
+          <h4 className="mb-4 font-display text-sm font-semibold text-foreground">Legal</h4>
+          <div className="flex flex-col gap-2">
+            <Link to="/privacy-policy" className="text-sm text-muted-foreground hover:text-primary">Privacy Policy</Link>
+            <Link to="/terms-and-conditions" className="text-sm text-muted-foreground hover:text-primary">Terms & Conditions</Link>
+            <Link to="/return-policy" className="text-sm text-muted-foreground hover:text-primary">Return Policy</Link>
+            <Link to="/shipping-policy" className="text-sm text-muted-foreground hover:text-primary">Shipping Policy</Link>
           </div>
         </div>
 
@@ -26,26 +37,22 @@ const Footer = () => (
           <h4 className="mb-4 font-display text-sm font-semibold text-foreground">Contact</h4>
           <div className="flex flex-col gap-3 text-sm text-muted-foreground">
             <span className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Kathmandu, Nepal</span>
-            <span className="flex items-center gap-2"><Phone className="h-4 w-4" /> +977-1-XXXXXXX</span>
+            <span className="flex items-center gap-2"><Phone className="h-4 w-4" /> +977 9851349608</span>
             <span className="flex items-center gap-2"><Mail className="h-4 w-4" /> info@greatnepal.com</span>
           </div>
-        </div>
-
-        <div>
-          <h4 className="mb-4 font-display text-sm font-semibold text-foreground">Payment Methods</h4>
-          <div className="flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <span className="rounded-md bg-background px-3 py-1 text-xs font-medium text-foreground">eSewa</span>
             <span className="rounded-md bg-background px-3 py-1 text-xs font-medium text-foreground">Khalti</span>
             <span className="rounded-md bg-background px-3 py-1 text-xs font-medium text-foreground">Cash on Delivery</span>
           </div>
-          <p className="mt-4 text-xs text-muted-foreground">
+          <p className="mt-3 text-xs text-muted-foreground">
             🚚 Kathmandu: 1–2 days · Outside Valley: 3–5 days
           </p>
         </div>
       </div>
 
       <div className="mt-10 border-t border-border pt-6 text-center text-xs text-muted-foreground">
-        © 2026 Great Nepal Online Shopping. All rights reserved.
+        © 2026 Great Nepal Online Shopping. All Rights Reserved.
       </div>
     </div>
   </footer>

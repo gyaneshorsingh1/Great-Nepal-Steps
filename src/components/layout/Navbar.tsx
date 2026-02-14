@@ -1,6 +1,7 @@
-import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Menu, X, Search } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ShoppingBag, Menu, X, User, LogOut } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 
@@ -8,13 +9,20 @@ const navLinks = [
   { path: '/', label: 'Home' },
   { path: '/shop', label: 'Shop' },
   { path: '/about', label: 'About' },
-  { path: '/cart', label: 'Cart' },
+  { path: '/contact', label: 'Contact' },
 ];
 
 const Navbar = () => {
   const { totalItems } = useCart();
+  const { user, isAdmin, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -39,6 +47,26 @@ const Navbar = () => {
         </nav>
 
         <div className="flex items-center gap-3">
+          {user ? (
+            <>
+              {isAdmin && (
+                <Link to="/admin/dashboard" className="hidden text-sm font-medium text-primary hover:underline md:block">
+                  Admin
+                </Link>
+              )}
+              <Link to="/profile">
+                <User className="h-5 w-5 text-foreground" />
+              </Link>
+              <button onClick={handleLogout} className="hidden md:block">
+                <LogOut className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+              </button>
+            </>
+          ) : (
+            <Link to="/login" className="text-sm font-medium text-primary hover:underline">
+              Login
+            </Link>
+          )}
+
           <Link to="/cart" className="relative">
             <ShoppingBag className="h-5 w-5 text-foreground" />
             {totalItems > 0 && (
@@ -74,6 +102,25 @@ const Navbar = () => {
               {link.label}
             </Link>
           ))}
+          {user ? (
+            <>
+              <Link to="/profile" onClick={() => setMobileOpen(false)} className="block py-3 text-sm font-medium text-muted-foreground">
+                My Profile
+              </Link>
+              {isAdmin && (
+                <Link to="/admin/dashboard" onClick={() => setMobileOpen(false)} className="block py-3 text-sm font-medium text-primary">
+                  Admin Dashboard
+                </Link>
+              )}
+              <button onClick={() => { handleLogout(); setMobileOpen(false); }} className="block py-3 text-sm font-medium text-destructive">
+                Logout
+              </button>
+            </>
+          ) : (
+            <Link to="/login" onClick={() => setMobileOpen(false)} className="block py-3 text-sm font-medium text-primary">
+              Login / Register
+            </Link>
+          )}
         </nav>
       )}
     </header>
