@@ -1,9 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import HeroBanner from '@/components/layout/HeroBanner';
 import ProductCard from '@/components/shop/ProductCard';
-import { products, categories } from '@/data/products';
+import { products as dummyProducts, categories } from '@/data/products';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { mergeById, mapDbProduct } from '@/lib/mergeData';
+import type { Product } from '@/data/products';
 import heroShop from '@/assets/hero-shop.jpg';
 
 type SortOption = 'newest' | 'price-asc' | 'price-desc' | 'popular';
@@ -11,9 +14,21 @@ type SortOption = 'newest' | 'price-asc' | 'price-desc' | 'popular';
 const Shop = () => {
   const [category, setCategory] = useState<string>('All');
   const [sort, setSort] = useState<SortOption>('newest');
+  const [realProducts, setRealProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    supabase.from('products').select('*').then(({ data }) => {
+      if (data) setRealProducts(data.map(mapDbProduct));
+    });
+  }, []);
+
+  const combinedProducts = useMemo(
+    () => mergeById(dummyProducts, realProducts),
+    [realProducts]
+  );
 
   const filtered = useMemo(() => {
-    let list = category === 'All' ? [...products] : products.filter(p => p.category === category);
+    let list = category === 'All' ? [...combinedProducts] : combinedProducts.filter(p => p.category === category);
     switch (sort) {
       case 'price-asc': list.sort((a, b) => a.price - b.price); break;
       case 'price-desc': list.sort((a, b) => b.price - a.price); break;
@@ -21,7 +36,7 @@ const Shop = () => {
       default: break;
     }
     return list;
-  }, [category, sort]);
+  }, [category, sort, combinedProducts]);
 
   return (
     <>

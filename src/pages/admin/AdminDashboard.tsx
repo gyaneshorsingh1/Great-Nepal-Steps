@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import HeroBanner from '@/components/layout/HeroBanner';
 import { supabase } from '@/integrations/supabase/client';
+import { products as dummyProducts } from '@/data/products';
+import { dummyOrders } from '@/data/dummyOrders';
+import { dummyCustomers } from '@/data/dummyCustomers';
 import { Package, ShoppingBag, Users, TrendingUp, AlertTriangle } from 'lucide-react';
 import heroHome from '@/assets/hero-home.jpg';
 
@@ -15,15 +18,22 @@ const AdminDashboard = () => {
         supabase.from('products').select('stock'),
       ]);
 
-      const orders = ordersRes.data || [];
-      const products = productsRes.data || [];
-      const revenue = orders.reduce((sum, o) => sum + Number(o.total_amount), 0);
-      const lowStock = products.filter(p => p.stock < 5).length;
+      const realOrders = ordersRes.data || [];
+      const realProducts = productsRes.data || [];
+      const realRevenue = realOrders.reduce((sum, o) => sum + Number(o.total_amount), 0);
+      const dummyRevenue = dummyOrders.reduce((sum, o) => sum + o.total_amount, 0);
 
-      // Get unique customer count
+      const realLowStock = realProducts.filter(p => p.stock < 5).length;
+      const dummyLowStock = dummyProducts.filter(p => !p.inStock).length;
+
       const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
 
-      setStats({ orders: orders.length, revenue, customers: count || 0, lowStock });
+      setStats({
+        orders: realOrders.length + dummyOrders.length,
+        revenue: realRevenue + dummyRevenue,
+        customers: (count || 0) + dummyCustomers.length,
+        lowStock: realLowStock + dummyLowStock,
+      });
     };
     fetchStats();
   }, []);

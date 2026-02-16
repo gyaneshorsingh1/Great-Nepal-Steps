@@ -1,18 +1,43 @@
 import { useParams, Link } from 'react-router-dom';
-import { products } from '@/data/products';
+import { products as dummyProducts } from '@/data/products';
 import { useCart } from '@/context/CartContext';
-import { useState } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Star, Truck, ShieldCheck, Minus, Plus } from 'lucide-react';
+import { Star, Truck, ShieldCheck, Minus, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from '@/components/shop/ProductCard';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { mergeById, mapDbProduct } from '@/lib/mergeData';
+import type { Product } from '@/data/products';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const product = products.find(p => p.id === id);
+  const [realProducts, setRealProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from('products').select('*').then(({ data }) => {
+      if (data) setRealProducts(data.map(mapDbProduct));
+      setLoading(false);
+    });
+  }, []);
+
+  const combinedProducts = useMemo(() => mergeById(dummyProducts, realProducts), [realProducts]);
+  const product = combinedProducts.find(p => p.id === id);
   const { addToCart } = useCart();
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [activeImg, setActiveImg] = useState(0);
+
+  const images = product
+    ? product.images.length > 1
+      ? product.images
+      : [product.images[0], product.images[0], product.images[0]]
+    : [];
+
+  const prevImg = useCallback(() => setActiveImg(i => (i - 1 + images.length) % images.length), [images.length]);
+  const nextImg = useCallback(() => setActiveImg(i => (i + 1) % images.length), [images.length]);
 
   if (!product) {
     return (
@@ -27,7 +52,7 @@ const ProductDetail = () => {
     );
   }
 
-  const related = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const related = combinedProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
 
   const handleAddToCart = () => {
     if (!selectedSize) {
@@ -43,13 +68,59 @@ const ProductDetail = () => {
       <section className="section-padding">
         <div className="container-main">
           <div className="grid gap-10 lg:grid-cols-2">
-            {/* Image */}
-            <div className="overflow-hidden rounded-lg bg-muted">
-              <img
-                src={product.images[0]}
-                alt={product.name}
-                className="h-full w-full object-cover"
-              />
+            {/* Image carousel */}
+            <div className="flex flex-col-reverse gap-3 sm:flex-row">
+              {/* Thumbnails */}
+              <div className="flex gap-2 sm:flex-col sm:gap-3 overflow-x-auto sm:overflow-y-auto sm:max-h-[500px] scrollbar-none">
+                {images.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveImg(i)}
+                    className={`relative shrink-0 h-16 w-16 sm:h-20 sm:w-20 rounded-md overflow-hidden border-2 transition-all ${
+                      activeImg === i ? 'border-primary ring-2 ring-primary/30' : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <img src={img} alt={`${product.name} view ${i + 1}`} className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+
+              {/* Main image */}
+              <div className="relative flex-1 overflow-hidden rounded-lg bg-muted group">
+                <img
+                  src={images[activeImg]}
+                  alt={product.name}
+                  className="h-full w-full object-cover aspect-square transition-transform duration-300 group-hover:scale-105"
+                />
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={prevImg}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-background/80 text-foreground shadow-md backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={nextImg}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-background/80 text-foreground shadow-md backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                    {/* Dots */}
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {images.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setActiveImg(i)}
+                          className={`h-2 w-2 rounded-full transition-all ${
+                            activeImg === i ? 'bg-primary w-4' : 'bg-background/70'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Info */}

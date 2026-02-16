@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HeroBanner from '@/components/layout/HeroBanner';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { dummyOrders } from '@/data/dummyOrders';
+import { mergeById } from '@/lib/mergeData';
 import { toast } from 'sonner';
 import { LogOut, Package, User } from 'lucide-react';
 import heroHome from '@/assets/hero-home.jpg';
@@ -16,12 +18,22 @@ interface Order {
   order_status: string;
   payment_method: string;
   created_at: string;
+  _isDemo?: boolean;
 }
+
+const dummyProfileOrders: Order[] = dummyOrders.map(o => ({
+  id: o.id,
+  total_amount: o.total_amount,
+  order_status: o.order_status,
+  payment_method: o.payment_method,
+  created_at: o.created_at,
+  _isDemo: true,
+}));
 
 const Profile = () => {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [realOrders, setRealOrders] = useState<Order[]>([]);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ full_name: '', phone: '' });
 
@@ -35,9 +47,14 @@ const Profile = () => {
     if (user) {
       supabase.from('orders').select('id, total_amount, order_status, payment_method, created_at')
         .eq('user_id', user.id).order('created_at', { ascending: false })
-        .then(({ data }) => { if (data) setOrders(data); });
+        .then(({ data }) => { if (data) setRealOrders(data); });
     }
   }, [user]);
+
+  const combinedOrders = useMemo(
+    () => mergeById(dummyProfileOrders, realOrders),
+    [realOrders]
+  );
 
   const handleSave = async () => {
     if (!user) return;
@@ -111,16 +128,19 @@ const Profile = () => {
           {/* Orders */}
           <div className="mt-8">
             <h3 className="flex items-center gap-2 font-display text-xl font-bold text-foreground">
-              <Package className="h-5 w-5" /> Order History ({orders.length})
+              <Package className="h-5 w-5" /> Order History ({combinedOrders.length})
             </h3>
-            {orders.length === 0 ? (
+            {combinedOrders.length === 0 ? (
               <p className="mt-4 text-muted-foreground">No orders yet.</p>
             ) : (
               <div className="mt-4 space-y-3">
-                {orders.map(order => (
+                {combinedOrders.map(order => (
                   <div key={order.id} className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
                     <div>
-                      <p className="text-sm font-medium text-foreground">Order #{order.id.slice(0, 8)}</p>
+                      <p className="text-sm font-medium text-foreground">
+                        Order #{order.id.slice(0, 8)}
+                        {order._isDemo && <span className="ml-2 text-xs text-muted-foreground">(demo)</span>}
+                      </p>
                       <p className="text-xs text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</p>
                     </div>
                     <div className="text-right">
