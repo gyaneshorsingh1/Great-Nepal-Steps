@@ -1,10 +1,12 @@
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Minus, Plus, ShoppingBag } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Trash2, Minus, Plus, ShoppingBag, Loader2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import HeroBanner from '@/components/layout/HeroBanner';
@@ -12,11 +14,56 @@ import heroShop from '@/assets/hero-shop.jpg';
 
 const Cart = () => {
   const { items, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState('cod');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
+  const [customerCity, setCustomerCity] = useState('');
+  const [placing, setPlacing] = useState(false);
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
+    if (!user) {
+      toast.error('Please login to place an order.');
+      navigate('/login');
+      return;
+    }
+    if (!customerName || !customerPhone || !customerAddress) {
+      toast.error('Please fill in all required fields.');
+      return;
+    }
+
+    setPlacing(true);
+    const orderItems = items.map(item => ({
+      product_id: item.product.id,
+      product_name: item.product.name,
+      size: item.size,
+      quantity: item.quantity,
+      price: item.product.price,
+      image: item.product.images?.[0] || '',
+    }));
+
+    const { error } = await supabase.from('orders').insert({
+      user_id: user.id,
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      customer_address: customerAddress,
+      customer_city: customerCity || 'Kathmandu',
+      payment_method: paymentMethod,
+      items: orderItems,
+      total_amount: totalPrice,
+    });
+
+    setPlacing(false);
+    if (error) {
+      toast.error('Failed to place order. Please try again.');
+      console.error('Order error:', error);
+      return;
+    }
     toast.success('Order placed successfully! We will contact you shortly.');
     clearCart();
+    navigate('/profile');
   };
 
   if (items.length === 0) {
@@ -96,20 +143,20 @@ const Cart = () => {
               <h2 className="font-display text-2xl font-bold text-foreground">Checkout</h2>
               <div className="mt-6 space-y-4 rounded-lg border border-border bg-card p-6">
                 <div className="space-y-2">
-                  <Label>Full Name</Label>
-                  <Input placeholder="Your full name" />
+                  <Label>Full Name *</Label>
+                  <Input placeholder="Your full name" value={customerName} onChange={e => setCustomerName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Phone Number</Label>
-                  <Input placeholder="+977-98XXXXXXXX" />
+                  <Label>Phone Number *</Label>
+                  <Input placeholder="+977-98XXXXXXXX" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Address</Label>
-                  <Input placeholder="Street address" />
+                  <Label>Address *</Label>
+                  <Input placeholder="Street address" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label>City</Label>
-                  <Input placeholder="Kathmandu" />
+                  <Input placeholder="Kathmandu" value={customerCity} onChange={e => setCustomerCity(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label>Payment Method</Label>
@@ -140,8 +187,8 @@ const Cart = () => {
                   </div>
                 </div>
 
-                <Button className="w-full" size="lg" onClick={handlePlaceOrder}>
-                  Place Order
+                <Button className="w-full" size="lg" onClick={handlePlaceOrder} disabled={placing}>
+                  {placing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Placing Order...</> : 'Place Order'}
                 </Button>
               </div>
             </div>
